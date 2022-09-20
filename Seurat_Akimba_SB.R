@@ -57,7 +57,7 @@ Akimba.seurat <- CreateSeuratObject(counts = akimba, project = "Akimba",
 # Works, but instead of gene names I've got ensembl numbers, which are basically unreadable.
 # Going to try https://www.reddit.com/r/bioinformatics/comments/cc5db6/help_with_converting_ensembl_id_to_gene_name/
 
-BiocManager::install('org.Hs.eg.db')
+# BiocManager::install('org.Hs.eg.db') # already installed
 library(AnnotationDbi)
 library(org.Hs.eg.db)
 ensembl2entrez <- as.list(org.Hs.egENSEMBL)
@@ -84,5 +84,22 @@ for (x in 1:length(ensembl_rownames)) {
 }
 
 rownames(ensembl_list@data) <- ensembl_rownames
+Akimba.seurat@assays[['scRNA']] <- ensembl_list
+Akimba.seurat[["percent.mt"]] <- PercentageFeatureSet(Akimba.seurat, pattern = "^MT-")
+# Finally got that set up. Now onto visualizations!
+
+VlnPlot(Akimba.seurat, features = c("nFeature_scRNA", "nCount_scRNA", "percent.mt"), ncol = 3)
+
+plot1 <- FeatureScatter(Akimba.seurat, feature1 = "nCount_scRNA", feature2 = "nFeature_scRNA")
+plot1
 
 
+Akimba.seurat <- FindVariableFeatures(Akimba.seurat, selection.method = "vst", nfeatures = 2000)
+# Identify the top 10 most highly variable genes
+top10 <- head(VariableFeatures(Akimba.seurat), 10)
+
+# plot variable features with and without labels
+plot1 <- VariableFeaturePlot(Akimba.seurat)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot1 + plot2
+plot2
